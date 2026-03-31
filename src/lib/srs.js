@@ -60,20 +60,22 @@ export function detectDelimiter(lines) {
   return null
 }
 
-/** Parse raw pasted text into [{sv, en}] pairs */
+/** Parse raw pasted text into [{sv, en}] pairs, also returning unparseable lines */
 export function parsePaste(raw) {
   const lines = raw.split('\n').map(l => l.trim()).filter(Boolean)
   const delim = detectDelimiter(lines)
-  if (!delim) return { pairs: [], delimName: null }
+  if (!delim) return { pairs: [], delimName: null, badLines: [] }
 
   const pairs = []
+  const badLines = []
   lines.forEach(line => {
     const parts = line.split(delim.re).map(s => s.trim()).filter(Boolean)
-    if (parts.length < 2) return
+    if (parts.length < 2) { badLines.push(line); return }
     const sv = parts[0].toLowerCase()
     const en = parts[1].toLowerCase()
     if (sv && en) pairs.push({ sv, en })
+    else badLines.push(line)
   })
 
-  return { pairs, delimName: delim.name }
+  return { pairs, delimName: delim.name, badLines }
 }

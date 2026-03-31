@@ -124,21 +124,25 @@ export function useCards(userId) {
   }, [load])
 
   // ── Import word pairs ──────────────────────────────────
-  const importPairs = useCallback(async (pairs) => {
-    if (!pairs.length) return { added: 0, skipped: 0 }
+  // pairs: [{ sv, en }]
+  // badLines: raw lines that failed to parse (passed through from srs.parsePaste)
+  const importPairs = useCallback(async (pairs, badLines = []) => {
+    if (!pairs.length) return { added: 0, duplicates: 0, dbErrors: [], badLines }
 
-    // Client-side pre-filter (best-effort, not relied on exclusively)
+    // Client-side duplicate pre-filter
     const existing = new Set(cards.map(c => `${c.sv}\t${c.en}`))
     const fresh = pairs.filter(p => !existing.has(`${p.sv}\t${p.en}`))
-    const clientSkipped = pairs.length - fresh.length
+    const clientDupes = pairs.length - fresh.length
 
-    if (!fresh.length) return { added: 0, skipped: clientSkipped }
+    if (!fresh.length) return { added: 0, duplicates: clientDupes, dbErrors: [], badLines }
 
     const rows = fresh.map(p => ({ user_id: userId, sv: p.sv, en: p.en, note: '' }))
 
-    // Insert one at a time so a duplicate on any single row doesn't
-    // abort the whole batch. 409 Conflict = already exists, skip it.
+    // Insert one row at a time — a 409/23505 on any row means it's a duplicate
+    // already in the DB (state was stale). Any other error is collected separately.
     let added = 0
+    let dbDupes = 0
+    const dbErrors = []   // [{ sv, en, message }]
     const newCards = []
 
     for (const row of rows) {
@@ -149,8 +153,12 @@ export function useCards(userId) {
         .single()
 
       if (error) {
-        if (error.code === '23505' || error.status === 409) continue // duplicate, skip
-        return { added, skipped: clientSkipped + (rows.length - added), error: error.message }
+        if (error.code === '23505' || error.status === 409) {
+          dbDupes++
+        } else {
+          dbErrors.push({ sv: row.sv, en: row.en, message: error.message })
+        }
+        continue
       }
 
       newCards.push({
@@ -162,7 +170,7 @@ export function useCards(userId) {
 
     if (newCards.length) setCards(prev => [...prev, ...newCards])
 
-    return { added, skipped: clientSkipped + (fresh.length - added) }
+    return { added, duplicates: clientDupes + dbDupes, dbErrors, badLines }
   }, [cards, userId])
 
   return { cards, loading, error, answerCard, saveNote, editCard, deleteCard, importPairs, reload: load }

@@ -2,22 +2,28 @@ import { useState } from 'react'
 import { parsePaste } from '../lib/srs'
 
 export default function ImportScreen({ onImport, direction, onDirectionChange }) {
-  const [text, setText]         = useState('')
-  const [result, setResult]     = useState(null)   // { type, msg }
+  const [text, setText]           = useState('')
+  const [result, setResult]       = useState(null)
   const [importing, setImporting] = useState(false)
 
   const handleImport = async () => {
-    if (!text.trim()) { setResult({ type: 'error', msg: 'Nothing to import.' }); return }
-    const { pairs, delimName } = parsePaste(text)
-    if (!delimName) { setResult({ type: 'error', msg: 'Could not detect a delimiter. Use tabs, commas, dashes, or multiple spaces.' }); return }
+    if (!text.trim()) { setResult({ type: 'error', lines: ['Nothing to import.'] }); return }
+    const { pairs, delimName, badLines } = parsePaste(text)
+    if (!delimName) {
+      setResult({ type: 'error', lines: ['Could not detect a delimiter. Use tabs, commas, dashes, or multiple spaces.'] })
+      return
+    }
 
     setImporting(true)
-    const { added, skipped, error } = await onImport(pairs)
+    const { added, duplicates, dbErrors, badLines: bl } = await onImport(pairs, badLines)
     setImporting(false)
 
-    if (error) { setResult({ type: 'error', msg: error }); return }
+    // Build a structured result to render
+    const allBadLines = [...(bl || []), ...(badLines || [])]
+    const hasIssues = duplicates > 0 || dbErrors.length > 0 || allBadLines.length > 0
+    const type = added > 0 ? 'success' : (hasIssues ? 'warn' : 'error')
 
-    setResult({ type: 'success', msg: `✓ Added ${added} word${added !== 1 ? 's' : ''} (${delimName})${skipped > 0 ? ` · ${skipped} skipped` : ''}` })
+    setResult({ type, added, delimName, duplicates, dbErrors, badLines: allBadLines })
     if (added > 0) setText('')
   }
 
@@ -45,11 +51,10 @@ export default function ImportScreen({ onImport, direction, onDirectionChange })
           <button className="btn-primary" style={{ flex: 1 }} onClick={handleImport} disabled={importing}>
             {importing ? 'Importing…' : 'Import'}
           </button>
-          <button className="btn-secondary" onClick={() => setText('')}>Clear</button>
+          <button className="btn-secondary" onClick={() => { setText(''); setResult(null) }}>Clear</button>
         </div>
-        {result && (
-          <div className={`import-result ${result.type}`}>{result.msg}</div>
-        )}
+
+        {result && <ImportResult result={result} />}
       </div>
 
       <div className="import-box solid">
@@ -61,9 +66,9 @@ export default function ImportScreen({ onImport, direction, onDirectionChange })
               className="btn-secondary"
               style={{
                 flex: 1,
-                background:   direction === d.id ? 'var(--accent-light)' : '',
-                color:        direction === d.id ? 'var(--accent)' : '',
-                borderColor:  direction === d.id ? 'var(--accent)' : '',
+                background:  direction === d.id ? 'var(--accent-light)' : '',
+                color:       direction === d.id ? 'var(--accent)'       : '',
+                borderColor: direction === d.id ? 'var(--accent)'       : '',
               }}
               onClick={() => onDirectionChange(d.id)}
             >
@@ -72,6 +77,78 @@ export default function ImportScreen({ onImport, direction, onDirectionChange })
           ))}
         </div>
       </div>
+    </div>
+  )
+}
+
+function ImportResult({ result }) {
+  // Plain error (no import attempted)
+  if (result.type === 'error') {
+    return (
+      <div className="import-result error">
+        {result.lines?.[0] ?? 'Unknown error.'}
+      </div>
+    )
+  }
+
+  const { added, delimName, duplicates, dbErrors, badLines } = result
+  const hasIssues = duplicates > 0 || dbErrors.length > 0 || badLines.length > 0
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+      {/* Success line */}
+      {added > 0 && (
+        <div className="import-result success">
+          ✓ Added {added} word{added !== 1 ? 's' : ''}{delimName ? ` (${delimName})` : ''}
+        </div>
+      )}
+
+      {added === 0 && !hasIssues && (
+        <div className="import-result success">Nothing new to add.</div>
+      )}
+
+      {/* Duplicates */}
+      {duplicates > 0 && (
+        <div className="import-result warn">
+          {duplicates} duplicate{duplicates !== 1 ? 's' : ''} skipped — already in your list.
+        </div>
+      )}
+
+      {/* Lines that couldn't be parsed */}
+      {badLines.length > 0 && (
+        <div className="import-result warn">
+          <div style={{ marginBottom: '5px' }}>
+            {badLines.length} line{badLines.length !== 1 ? 's' : ''} skipped — couldn't find two columns:
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            {badLines.map((l, i) => (
+              <code key={i} style={{ fontSize: '11px', background: 'rgba(0,0,0,0.06)', borderRadius: '4px', padding: '2px 6px', wordBreak: 'break-all' }}>
+                {l}
+              </code>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* DB-level errors */}
+      {dbErrors.length > 0 && (
+        <div className="import-result error">
+          <div style={{ marginBottom: '5px' }}>
+            {dbErrors.length} word{dbErrors.length !== 1 ? 's' : ''} failed to save:
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {dbErrors.map((e, i) => (
+              <div key={i} style={{ fontSize: '12px' }}>
+                <code style={{ background: 'rgba(0,0,0,0.06)', borderRadius: '4px', padding: '1px 5px' }}>
+                  {e.sv} / {e.en}
+                </code>
+                {' '}— {e.message}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

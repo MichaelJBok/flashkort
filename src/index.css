@@ -325,7 +325,8 @@ textarea:focus { border-color: var(--accent); }
 }
 .import-actions { display: flex; gap: 10px; }
 .import-result { font-size: 13px; padding: 10px 14px; border-radius: 10px; }
-.import-result.success { background: var(--green-light); color: var(--green); }
+.import-result.success { background: var(--green-light);  color: var(--green); }
+.import-result.warn    { background: var(--amber-light); color: var(--amber); }
 .import-result.error   { background: var(--red-light);   color: var(--red);   }
 
 /* ── Words screen ───────────────────────────────────────── */
