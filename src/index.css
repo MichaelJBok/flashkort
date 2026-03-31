@@ -27,8 +27,8 @@
 
 html, body, #root {
   height: 100%;
-  /* Use dvh so the nav doesn't get hidden by mobile chrome */
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 body {
@@ -110,10 +110,12 @@ nav {
 .screen-scroll {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-height: 0; /* required for flex children to scroll rather than expand */
 }
 
 .screen-title {
