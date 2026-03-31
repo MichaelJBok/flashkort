@@ -127,30 +127,42 @@ export function useCards(userId) {
   const importPairs = useCallback(async (pairs) => {
     if (!pairs.length) return { added: 0, skipped: 0 }
 
-    // Filter out pairs already in the user's list
+    // Client-side pre-filter (best-effort, not relied on exclusively)
     const existing = new Set(cards.map(c => `${c.sv}\t${c.en}`))
     const fresh = pairs.filter(p => !existing.has(`${p.sv}\t${p.en}`))
-    const skipped = pairs.length - fresh.length
+    const clientSkipped = pairs.length - fresh.length
 
-    if (!fresh.length) return { added: 0, skipped }
+    if (!fresh.length) return { added: 0, skipped: clientSkipped }
 
     const rows = fresh.map(p => ({ user_id: userId, sv: p.sv, en: p.en, note: '' }))
 
-    const { data, error } = await supabase
-      .from('cards')
-      .insert(rows)
-      .select()
+    // Insert one at a time so a duplicate on any single row doesn't
+    // abort the whole batch. 409 Conflict = already exists, skip it.
+    let added = 0
+    const newCards = []
 
-    if (error) return { added: 0, skipped, error: error.message }
+    for (const row of rows) {
+      const { data, error } = await supabase
+        .from('cards')
+        .insert(row)
+        .select()
+        .single()
 
-    // Append new cards (with default progress) to local state
-    const newCards = (data || []).map(c => ({
-      ...c, correct: 0, wrong: 0, interval: 1,
-      next_due: new Date(0).toISOString(), last_seen: null,
-    }))
-    setCards(prev => [...prev, ...newCards])
+      if (error) {
+        if (error.code === '23505' || error.status === 409) continue // duplicate, skip
+        return { added, skipped: clientSkipped + (rows.length - added), error: error.message }
+      }
 
-    return { added: fresh.length, skipped }
+      newCards.push({
+        ...data, correct: 0, wrong: 0, interval: 1,
+        next_due: new Date(0).toISOString(), last_seen: null,
+      })
+      added++
+    }
+
+    if (newCards.length) setCards(prev => [...prev, ...newCards])
+
+    return { added, skipped: clientSkipped + (fresh.length - added) }
   }, [cards, userId])
 
   return { cards, loading, error, answerCard, saveNote, editCard, deleteCard, importPairs, reload: load }
