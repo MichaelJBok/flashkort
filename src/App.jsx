@@ -85,6 +85,7 @@ export default function App() {
                 onImport={importPairs}
                 direction={direction}
                 onDirectionChange={setDirection}
+                cards={cards}
               />
             )}
             {screen === 'words' && (

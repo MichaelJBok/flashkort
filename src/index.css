@@ -482,3 +482,5 @@ textarea:focus { border-color: var(--accent); }
 .modal-field textarea { min-height: 80px; resize: vertical; }
 .modal-actions { display: flex; gap: 10px; }
 .modal-note { font-size: 12px; color: var(--text-muted); }
+
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
