@@ -1,53 +1,81 @@
-import { useState, useMemo } from 'react'
-import { buildQueue, getStatus } from '../lib/srs'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { buildQueue } from '../lib/srs'
+
+const FLIP_MS = 500 // must match CSS transition duration
 
 export default function StudyScreen({ cards, direction, onAnswer, onSaveNote, onNavigate }) {
-  const [flipped, setFlipped]       = useState(false)
-  const [noteOpen, setNoteOpen]     = useState(false)
-  const [noteText, setNoteText]     = useState('')
+  const [flipped, setFlipped]               = useState(false)
+  const [noteOpen, setNoteOpen]             = useState(false)
+  const [noteText, setNoteText]             = useState('')
   const [sessionCorrect, setSessionCorrect] = useState(0)
   const [sessionTotal, setSessionTotal]     = useState(0)
-  const [currentIdx, setCurrentIdx] = useState(0)
+  const [animating, setAnimating]           = useState(false)
+
+  // Snapshot of what's on the card right now — frozen at answer time
+  // so live card updates from useCards don't bleed through mid-animation.
+  const [snapshot, setSnapshot] = useState(null)
+
+  const advanceTimer = useRef(null)
 
   const queue = useMemo(() => buildQueue(cards, direction), [cards, direction])
+  const now = Date.now()
+  const dueQueue = useMemo(() => {
+    return queue.filter(c => new Date(c.next_due || 0).getTime() <= now)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queue])
 
-  // Advance to next card and reset state
-  const advance = () => {
-    setFlipped(false)
-    setNoteOpen(false)
-    setCurrentIdx(i => i + 1)
-  }
+  // The live card from the queue — used to seed the snapshot when idle
+  const liveCard = dueQueue[0] ?? null
 
-  const handleAnswer = async (correct) => {
-    if (!currentCard) return
+  // Keep snapshot up to date with live data, but only when not animating
+  useEffect(() => {
+    if (!animating) {
+      setSnapshot(liveCard ? { ...liveCard } : null)
+    }
+  // We intentionally exclude animating from deps so this only runs
+  // when the card or queue changes while we're not mid-flip.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveCard?.id, direction, animating])
+
+  const handleAnswer = (correct) => {
+    if (!snapshot || animating) return
+
     setSessionCorrect(s => s + (correct ? 1 : 0))
     setSessionTotal(s => s + 1)
-    await onAnswer(currentCard.id, correct)
-    advance()
+
+    // Start flip-back — snapshot stays frozen until timer fires
+    setFlipped(false)
+    setNoteOpen(false)
+    setAnimating(true)
+
+    // Fire DB update immediately (non-blocking)
+    onAnswer(snapshot.id, correct)
+
+    advanceTimer.current = setTimeout(() => {
+      setAnimating(false)
+      // snapshot will refresh via the useEffect above once animating=false
+    }, FLIP_MS + 50)
   }
 
+  useEffect(() => () => clearTimeout(advanceTimer.current), [])
+
   const handleFlip = () => {
-    if (noteOpen) return
+    if (noteOpen || animating) return
     setFlipped(f => !f)
   }
 
   const handleNoteToggle = (e) => {
     e.stopPropagation()
-    if (!noteOpen) setNoteText(currentCard?.note || '')
+    if (!snapshot) return
+    if (!noteOpen) setNoteText(snapshot.note || '')
     setNoteOpen(o => !o)
   }
 
   const handleNoteSave = async (e) => {
     e.stopPropagation()
-    if (currentCard) await onSaveNote(currentCard.id, noteText)
+    if (snapshot) await onSaveNote(snapshot.id, noteText)
     setNoteOpen(false)
   }
-
-  const now = Date.now()
-  const dueQueue = queue.filter(c => new Date(c.next_due || 0).getTime() <= now)
-
-  // We track position in the full queue; skip already-answered ones
-  const currentCard = dueQueue[0] ?? null
 
   const pct = sessionTotal > 0 ? Math.round(sessionCorrect / sessionTotal * 100) : null
   const progressPct = sessionTotal / Math.max(sessionTotal + dueQueue.length, 1) * 100
@@ -63,7 +91,7 @@ export default function StudyScreen({ cards, direction, onAnswer, onSaveNote, on
     )
   }
 
-  if (!currentCard) {
+  if (!snapshot && !animating && dueQueue.length === 0) {
     return (
       <div className="empty-state">
         <div className="emoji">✅</div>
@@ -79,11 +107,12 @@ export default function StudyScreen({ cards, direction, onAnswer, onSaveNote, on
     )
   }
 
-  const front     = currentCard.showSv ? currentCard.sv : currentCard.en
-  const back      = currentCard.showSv ? currentCard.en : currentCard.sv
-  const frontLang = currentCard.showSv ? 'Svenska' : 'English'
-  const backLang  = currentCard.showSv ? 'English' : 'Svenska'
-  const hasNote   = !!(currentCard.note && currentCard.note.trim())
+  const card      = snapshot
+  const front     = card ? (card.showSv ? card.sv : card.en) : ''
+  const back      = card ? (card.showSv ? card.en : card.sv) : ''
+  const frontLang = card ? (card.showSv ? 'Svenska' : 'English') : ''
+  const backLang  = card ? (card.showSv ? 'English' : 'Svenska') : ''
+  const hasNote   = !!(card?.note?.trim())
 
   return (
     <div className="study-layout">
@@ -101,20 +130,18 @@ export default function StudyScreen({ cards, direction, onAnswer, onSaveNote, on
       {/* Card */}
       <div className={`card-scene${flipped ? ' flipped' : ''}`} onClick={handleFlip}>
         <div className="card-inner">
-          {/* Front */}
           <div className="card-face front">
-            <button className={`card-note-btn${hasNote ? ' has-note' : ''}`} onClick={handleNoteToggle} title={hasNote ? 'View note' : 'Add note'}>📝</button>
+            {card && <button className={`card-note-btn${hasNote ? ' has-note' : ''}`} onClick={handleNoteToggle} title={hasNote ? 'View note' : 'Add note'}>📝</button>}
             <div className="card-stats">
-              <div className="stat-pill">✓ {currentCard.correct}</div>
-              <div className="stat-pill">✗ {currentCard.wrong}</div>
+              <div className="stat-pill">✓ {card?.correct ?? 0}</div>
+              <div className="stat-pill">✗ {card?.wrong ?? 0}</div>
             </div>
             <div className="card-lang">{frontLang}</div>
             <div className="card-word">{front}</div>
-            <div className="card-tap-hint">tap to reveal</div>
+            {card && <div className="card-tap-hint">tap to reveal</div>}
           </div>
-          {/* Back */}
           <div className="card-face back">
-            <button className={`card-note-btn${hasNote ? ' has-note' : ''}`} onClick={handleNoteToggle} title={hasNote ? 'View note' : 'Add note'}>📝</button>
+            {card && <button className={`card-note-btn${hasNote ? ' has-note' : ''}`} onClick={handleNoteToggle} title={hasNote ? 'View note' : 'Add note'}>📝</button>}
             <div className="card-lang">{backLang}</div>
             <div className="card-word">{back}</div>
           </div>
@@ -140,7 +167,7 @@ export default function StudyScreen({ cards, direction, onAnswer, onSaveNote, on
       )}
 
       {/* Answer buttons */}
-      <div className="answer-buttons" style={{ visibility: flipped && !noteOpen ? 'visible' : 'hidden' }}>
+      <div className="answer-buttons" style={{ visibility: flipped && !noteOpen && !animating ? 'visible' : 'hidden' }}>
         <button className="answer-btn btn-wrong" onClick={() => handleAnswer(false)}>
           <span className="btn-emoji">✗</span>
           <span className="btn-label">Didn't know</span>
@@ -150,7 +177,7 @@ export default function StudyScreen({ cards, direction, onAnswer, onSaveNote, on
           <span className="btn-label">Got it</span>
         </button>
       </div>
-      <div className="answer-note" style={{ visibility: flipped && !noteOpen ? 'visible' : 'hidden' }}>
+      <div className="answer-note" style={{ visibility: flipped && !noteOpen && !animating ? 'visible' : 'hidden' }}>
         Be honest — it helps the algorithm!
       </div>
     </div>
