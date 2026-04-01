@@ -7,6 +7,7 @@ export default function ImportScreen({ onImport, direction, onDirectionChange, c
   const [importing, setImporting]   = useState(false)
 
   // Suggestions state
+  const [difficulty, setDifficulty]       = useState(0)   // -2..2
   const [suggestions, setSuggestions]     = useState([])   // [{ sv, en }]
   const [selected, setSelected]           = useState(new Set())
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
@@ -40,7 +41,7 @@ export default function ImportScreen({ onImport, direction, onDirectionChange, c
       const res = await fetch('/api/suggest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ words: cards.map(c => ({ sv: c.sv, en: c.en })) }),
+        body: JSON.stringify({ words: cards.map(c => ({ sv: c.sv, en: c.en })), difficulty }),
       })
       const data = await res.json()
       if (!res.ok || data.error) throw new Error(data.error || 'Request failed')
@@ -120,6 +121,31 @@ export default function ImportScreen({ onImport, direction, onDirectionChange, c
           >
             {loadingSuggestions ? '…' : suggestionsLoaded ? '🔄 Refresh' : '✨ Suggest'}
           </button>
+        </div>
+
+        {/* Difficulty slider */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, letterSpacing: '0.5px', textTransform: 'uppercase' }}>Difficulty</span>
+            <span style={{
+              fontSize: '12px', fontWeight: 600, padding: '2px 10px', borderRadius: '20px',
+              background: difficulty < 0 ? 'var(--teal-light)' : difficulty > 0 ? 'var(--amber-light)' : 'var(--surface2)',
+              color: difficulty < 0 ? 'var(--teal)' : difficulty > 0 ? 'var(--amber)' : 'var(--text-muted)',
+            }}>
+              {difficulty === -2 ? 'Much easier' : difficulty === -1 ? 'Easier' : difficulty === 0 ? 'Similar' : difficulty === 1 ? 'Harder' : 'Much harder'}
+            </span>
+          </div>
+          <input
+            type="range" min="-2" max="2" step="1"
+            value={difficulty}
+            onChange={e => setDifficulty(Number(e.target.value))}
+            style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-muted)', marginTop: '-2px' }}>
+            <span>Easier</span>
+            <span>Similar</span>
+            <span>Harder</span>
+          </div>
         </div>
 
         {suggestError && (
