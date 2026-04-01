@@ -39,7 +39,11 @@ export function computeAnswer(card, correct) {
     ? Math.min((card.interval || 1) * 2, 32)
     : 1
 
-  const next_due = new Date(Date.now() + interval * 30_000).toISOString()
+  // Interval-based cooldown, loosely inspired by Anki:
+  // 1→1min, 2→10min, 4→1hr, 8→8hr, 16→1day, 32→3days
+  const INTERVAL_MINUTES = { 1: 1, 2: 10, 4: 60, 8: 480, 16: 1440, 32: 4320 }
+  const minutes = INTERVAL_MINUTES[interval] ?? interval * 90
+  const next_due = new Date(Date.now() + minutes * 60_000).toISOString()
 
   return {
     correct:   (card.correct || 0) + (correct ? 1 : 0),
