@@ -196,19 +196,6 @@ function FlashcardMode({ cards, direction, onAnswer, onSaveNote, onNavigate }) {
         </div>
       )}
 
-      {/* Hint button — only shown when card is unflipped and hint not yet shown */}
-      {card && !flipped && !hintOptions && !animating && (
-        <button onClick={handleShowHint}
-          style={{
-            background: 'none', border: '1px solid var(--border)', borderRadius: '10px',
-            padding: '7px 16px', fontSize: '13px', color: 'var(--text-muted)',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-          }}>
-          💡 Show hint
-          {usedHint && <span style={{ fontSize: '10px', color: 'var(--amber)', fontWeight: 600 }}>−½ credit</span>}
-        </button>
-      )}
-
       {/* Note panel */}
       {noteOpen && (
         <div className="note-panel">
@@ -221,16 +208,31 @@ function FlashcardMode({ cards, direction, onAnswer, onSaveNote, onNavigate }) {
         </div>
       )}
 
-      <div className="answer-buttons" style={{ visibility: showAnswerBtns ? 'visible' : 'hidden' }}>
-        <button className="answer-btn btn-wrong" onClick={() => handleAnswer(false)}>
-          <span className="btn-emoji">✗</span><span className="btn-label">Didn't know</span>
-        </button>
-        <button className="answer-btn btn-right" onClick={() => handleAnswer(true)}>
-          <span className="btn-emoji">✓</span><span className="btn-label">Got it</span>
-        </button>
-      </div>
-      <div className="answer-note" style={{ visibility: showAnswerBtns ? 'visible' : 'hidden' }}>
-        Be honest — it helps the algorithm!
+      {/* Fixed-height reserved block so nothing above can shift position */}
+      <div style={{ width: '100%', maxWidth: '420px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', minHeight: '116px' }}>
+        {/* Hint button lives here so it doesn't cause layout shifts */}
+        {card && !flipped && !hintOptions && !animating && (
+          <button onClick={handleShowHint}
+            style={{
+              background: 'none', border: '1px solid var(--border)', borderRadius: '10px',
+              padding: '7px 16px', fontSize: '13px', color: 'var(--text-muted)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+            }}>
+            💡 Show hint
+            {usedHint && <span style={{ fontSize: '10px', color: 'var(--amber)', fontWeight: 600 }}>−½ credit</span>}
+          </button>
+        )}
+        <div className="answer-buttons" style={{ visibility: showAnswerBtns ? 'visible' : 'hidden' }}>
+          <button className="answer-btn btn-wrong" onClick={() => handleAnswer(false)}>
+            <span className="btn-emoji">✗</span><span className="btn-label">Didn't know</span>
+          </button>
+          <button className="answer-btn btn-right" onClick={() => handleAnswer(true)}>
+            <span className="btn-emoji">✓</span><span className="btn-label">Got it</span>
+          </button>
+        </div>
+        <div className="answer-note" style={{ visibility: showAnswerBtns ? 'visible' : 'hidden' }}>
+          Be honest — it helps the algorithm!
+        </div>
       </div>
     </div>
   )

@@ -70,7 +70,7 @@ export default function App() {
         ) : (
           <>
             {screen === 'study' && (
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', gap: '20px', flexDirection: 'column' }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', paddingTop: '24px', padding: '24px 20px 20px', gap: '20px', flexDirection: 'column', overflowY: 'auto' }}>
                 <StudyScreen
                   cards={cards}
                   direction={direction}
