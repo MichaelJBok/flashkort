@@ -51,11 +51,11 @@ export function useCards(userId) {
   useEffect(() => { load() }, [load])
 
   // ── Answer a card ──────────────────────────────────────
-  const answerCard = useCallback(async (cardId, correct) => {
+  const answerCard = useCallback(async (cardId, correct, mode = 'normal') => {
     const card = cards.find(c => c.id === cardId)
     if (!card) return
 
-    const updates = computeAnswer(card, correct)
+    const updates = computeAnswer(card, correct, mode)
 
     // Optimistic update
     setCards(prev => prev.map(c => c.id === cardId ? { ...c, ...updates } : c))

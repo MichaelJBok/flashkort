@@ -32,12 +32,19 @@ export function buildQueue(cards, direction = 'both') {
 
 /**
  * Compute updated progress fields after an answer.
- * Returns an object suitable for upserting into Supabase `progress`.
+ * mode: 'normal' | 'hint' | 'wrong'
+ *   normal → correct doubles interval, wrong resets to 1
+ *   hint   → correct adds 1 (no doubling), wrong resets to 1
  */
-export function computeAnswer(card, correct) {
-  const interval = correct
-    ? Math.min((card.interval || 1) * 2, 32)
-    : 1
+export function computeAnswer(card, correct, mode = 'normal') {
+  let interval
+  if (!correct) {
+    interval = 1
+  } else if (mode === 'hint') {
+    interval = Math.min((card.interval || 1) + 1, 32)
+  } else {
+    interval = Math.min((card.interval || 1) * 2, 32)
+  }
 
   // Interval-based cooldown, loosely inspired by Anki:
   // 1→1min, 2→10min, 4→1hr, 8→8hr, 16→1day, 32→3days
