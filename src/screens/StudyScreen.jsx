@@ -134,6 +134,7 @@ function FlashcardMode({ cards, direction, onAnswer, onSaveNote, onNavigate }) {
   const frontLang = card ? (card.showSv ? 'Svenska' : 'English') : ''
   const backLang  = card ? (card.showSv ? 'English' : 'Svenska') : ''
   const hasNote   = !!(card?.note?.trim())
+  const heading   = card?.note?.trim() || ''
   const showAnswerBtns = flipped && !noteOpen && !animating && !hintOptions
 
   return (
@@ -155,12 +156,14 @@ function FlashcardMode({ cards, direction, onAnswer, onSaveNote, onNavigate }) {
               <div className="stat-pill">✗ {card?.wrong ?? 0}</div>
             </div>
             <div className="card-lang">{frontLang}</div>
+            {heading && <div className="card-heading">{heading}</div>}
             <div className="card-word">{front}</div>
             {card && !hintOptions && <div className="card-tap-hint">tap to reveal</div>}
           </div>
           <div className="card-face back">
             {card && <button className={`card-note-btn${hasNote ? ' has-note' : ''}`} onClick={handleNoteToggle} title={hasNote ? 'View note' : 'Add note'}>📝</button>}
             <div className="card-lang">{backLang}</div>
+            {heading && <div className="card-heading">{heading}</div>}
             <div className="card-word">{back}</div>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(12px,2.5vw,15px)', opacity: 0.35, marginTop: '4px', textAlign: 'center' }}>{front}</div>
           </div>
