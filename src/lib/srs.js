@@ -71,7 +71,8 @@ export function detectDelimiter(lines) {
   return null
 }
 
-/** Parse raw pasted text into [{sv, en}] pairs, also returning unparseable lines */
+/** Parse raw pasted text into [{sv, en, note}] pairs, also returning unparseable lines.
+ *  An optional 3rd column (same delimiter) is kept as-is and used as the note/heading. */
 export function parsePaste(raw) {
   const lines = raw.split('\n').map(l => l.trim()).filter(Boolean)
   const delim = detectDelimiter(lines)
@@ -84,7 +85,8 @@ export function parsePaste(raw) {
     if (parts.length < 2) { badLines.push(line); return }
     const sv = parts[0].toLowerCase()
     const en = parts[1].toLowerCase()
-    if (sv && en) pairs.push({ sv, en })
+    const note = parts[2] || ''
+    if (sv && en) pairs.push({ sv, en, note })
     else badLines.push(line)
   })
 

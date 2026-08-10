@@ -136,7 +136,7 @@ export function useCards(userId) {
 
     if (!fresh.length) return { added: 0, duplicates: clientDupes, dbErrors: [], badLines }
 
-    const rows = fresh.map(p => ({ user_id: userId, sv: p.sv, en: p.en, note: '' }))
+    const rows = fresh.map(p => ({ user_id: userId, sv: p.sv, en: p.en, note: p.note || '' }))
 
     // Insert one row at a time — a 409/23505 on any row means it's a duplicate
     // already in the DB (state was stale). Any other error is collected separately.

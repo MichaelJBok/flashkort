@@ -87,8 +87,8 @@ export default function ImportScreen({ onImport, direction, onDirectionChange, c
 
       {/* ── Paste import ── */}
       <div className="import-box">
-        <label className="import-label">Swedish ↔ English — one pair per line</label>
-        <div className="example-text">{`hej\t\thello\ntack, thank you\nförstår - understand\ngod morgon    good morning`}</div>
+        <label className="import-label">Swedish ↔ English — one pair per line (optional 3rd column = note/heading)</label>
+        <div className="example-text">{`hej\t\thello\ntack, thank you\nförstår - understand\ngod morgon    good morning\nen älg\ta moose\tDjur`}</div>
         <textarea
           value={text}
           onChange={e => setText(e.target.value)}
