@@ -16,7 +16,7 @@ const NAV = [
 
 export default function App() {
   const { session, user, loading: authLoading, sendMagicLink, sendingLink, linkSent, authError, signOut } = useAuth()
-  const { cards, loading: cardsLoading, answerCard, saveNote, editCard, deleteCard, importPairs, reload } = useCards(user?.id)
+  const { cards, loading: cardsLoading, answerCard, saveNote, toggleStar, editCard, deleteCard, importPairs, reload } = useCards(user?.id)
 
   const [screen, setScreen]       = useState('study')
   const [direction, setDirection] = useState('both')
@@ -76,6 +76,7 @@ export default function App() {
                   direction={direction}
                   onAnswer={answerCard}
                   onSaveNote={saveNote}
+                  onToggleStar={toggleStar}
                   onNavigate={setScreen}
                 />
               </div>
@@ -94,6 +95,7 @@ export default function App() {
                 onEdit={editCard}
                 onDelete={deleteCard}
                 onSaveNote={saveNote}
+                onToggleStar={toggleStar}
               />
             )}
             {screen === 'stats' && (

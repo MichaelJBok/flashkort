@@ -23,9 +23,13 @@ create table if not exists public.cards (
   sv         text not null,
   en         text not null,
   note       text default '',
+  starred    boolean not null default false,
   created_at timestamptz default now(),
   unique(user_id, sv, en)   -- prevent duplicate pairs per user
 );
+
+-- Migration: add starred column to an existing table (safe to re-run)
+alter table public.cards add column if not exists starred boolean not null default false;
 
 -- ── Progress ──────────────────────────────────────────────
 -- One row per (user, card). Upserted after every answer.

@@ -221,6 +221,16 @@ nav {
 .card-note-btn:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
 .card-note-btn.has-note { background: var(--amber-light); color: var(--amber); border-color: #e6c96a; }
 
+/* Star (focus list) button on card */
+.card-star-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 18px; line-height: 1; padding: 0;
+  color: var(--text-muted); opacity: 0.5;
+  transition: all 0.15s;
+}
+.card-star-btn:hover { opacity: 0.85; }
+.card-star-btn.starred { opacity: 1; color: var(--amber); }
+
 /* Note panel */
 .note-panel {
   width: 100%; max-width: 420px;
@@ -377,13 +387,13 @@ textarea:focus { border-color: var(--accent); }
   overflow: hidden;
 }
 .words-table-header {
-  display: grid; grid-template-columns: 1fr 1fr 36px 36px 56px 62px;
+  display: grid; grid-template-columns: 22px 1fr 1fr 36px 36px 56px 62px;
   padding: 8px 12px; border-bottom: 1px solid var(--border);
   font-size: 10px; font-weight: 600; color: var(--text-muted);
   letter-spacing: 0.5px; text-transform: uppercase; gap: 6px;
 }
 .word-row-full {
-  display: grid; grid-template-columns: 1fr 1fr 36px 36px 56px 62px;
+  display: grid; grid-template-columns: 22px 1fr 1fr 36px 36px 56px 62px;
   align-items: center; padding: 9px 12px;
   border-bottom: 1px solid var(--border); gap: 6px;
 }
@@ -394,7 +404,17 @@ textarea:focus { border-color: var(--accent); }
 .wrf-correct { color: var(--green); }
 .wrf-wrong   { color: var(--red); }
 .wrf-badge   { display: flex; justify-content: center; }
+.wrf-star    { display: flex; justify-content: center; }
 .wrf-actions { display: flex; gap: 4px; justify-content: flex-end; }
+
+.star-toggle-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 15px; line-height: 1; padding: 2px;
+  color: var(--text-muted); opacity: 0.4;
+  transition: all 0.15s;
+}
+.star-toggle-btn:hover { opacity: 0.8; }
+.star-toggle-btn.starred { opacity: 1; color: var(--amber); }
 
 .row-btn {
   width: 26px; height: 26px; border-radius: 7px;

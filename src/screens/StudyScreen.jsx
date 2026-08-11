@@ -21,7 +21,7 @@ function pickDecoys(allCards, correctCard, showSv, count = 4) {
 // ─────────────────────────────────────────────────────────
 //  FLASHCARD MODE
 // ─────────────────────────────────────────────────────────
-function FlashcardMode({ cards, direction, onAnswer, onSaveNote, onNavigate }) {
+function FlashcardMode({ cards, direction, onAnswer, onSaveNote, onToggleStar, onNavigate }) {
   const [flipped, setFlipped]               = useState(false)
   const [noteOpen, setNoteOpen]             = useState(false)
   const [noteText, setNoteText]             = useState('')
@@ -78,6 +78,14 @@ function FlashcardMode({ cards, direction, onAnswer, onSaveNote, onNavigate }) {
     e.stopPropagation()
     if (snapshot) await onSaveNote(snapshot.id, noteText)
     setNoteOpen(false)
+  }
+
+  const handleToggleStar = (e) => {
+    e.stopPropagation()
+    if (!snapshot) return
+    const next = !snapshot.starred
+    setSnapshot(s => s ? { ...s, starred: next } : s)
+    onToggleStar(snapshot.id, next)
   }
 
   const handleShowHint = (e) => {
@@ -152,6 +160,11 @@ function FlashcardMode({ cards, direction, onAnswer, onSaveNote, onNavigate }) {
           <div className="card-face front">
             {card && <button className={`card-note-btn${hasNote ? ' has-note' : ''}`} onClick={handleNoteToggle} title={hasNote ? 'View note' : 'Add note'}>📝</button>}
             <div className="card-stats">
+              {card && (
+                <button className={`card-star-btn${card.starred ? ' starred' : ''}`} onClick={handleToggleStar} title={card.starred ? 'Remove from focus list' : 'Add to focus list'}>
+                  {card.starred ? '★' : '☆'}
+                </button>
+              )}
               <div className="stat-pill">✓ {card?.correct ?? 0}</div>
               <div className="stat-pill">✗ {card?.wrong ?? 0}</div>
             </div>
@@ -415,8 +428,12 @@ function MatchMode({ cards, direction, onAnswer, onNavigate }) {
 // ─────────────────────────────────────────────────────────
 //  ROOT STUDY SCREEN
 // ─────────────────────────────────────────────────────────
-export default function StudyScreen({ cards, direction, onAnswer, onSaveNote, onNavigate }) {
+export default function StudyScreen({ cards, direction, onAnswer, onSaveNote, onToggleStar, onNavigate }) {
   const [mode, setMode] = useState('flashcard') // 'flashcard' | 'match'
+  const [starredOnly, setStarredOnly] = useState(false)
+
+  const starredCount = cards.filter(c => c.starred).length
+  const activeCards  = starredOnly ? cards.filter(c => c.starred) : cards
 
   return (
     <div className="study-layout" style={{ paddingTop: '8px' }}>
@@ -440,9 +457,23 @@ export default function StudyScreen({ cards, direction, onAnswer, onSaveNote, on
         ))}
       </div>
 
-      {mode === 'flashcard'
-        ? <FlashcardMode cards={cards} direction={direction} onAnswer={onAnswer} onSaveNote={onSaveNote} onNavigate={onNavigate} />
-        : <MatchMode     cards={cards} direction={direction} onAnswer={onAnswer} onNavigate={onNavigate} />
+      {/* Starred-only toggle */}
+      <button
+        className={`chip${starredOnly ? ' active' : ''}`}
+        onClick={() => setStarredOnly(s => !s)}
+      >
+        {starredOnly ? '★' : '☆'} Starred only <span style={{ opacity: 0.6 }}>{starredCount}</span>
+      </button>
+
+      {starredOnly && activeCards.length === 0 ? (
+        <div className="empty-state">
+          <div className="emoji">⭐</div>
+          <div className="empty-title">No starred words</div>
+          <p style={{ fontSize: '14px' }}>Tap the star on a card or in your word list to focus on it.</p>
+        </div>
+      ) : mode === 'flashcard'
+        ? <FlashcardMode cards={activeCards} direction={direction} onAnswer={onAnswer} onSaveNote={onSaveNote} onToggleStar={onToggleStar} onNavigate={onNavigate} />
+        : <MatchMode     cards={activeCards} direction={direction} onAnswer={onAnswer} onNavigate={onNavigate} />
       }
     </div>
   )

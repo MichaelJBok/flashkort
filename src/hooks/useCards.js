@@ -113,6 +113,16 @@ export function useCards(userId) {
     return { error: null }
   }, [cards, userId])
 
+  // ── Toggle star (focus list) ───────────────────────────
+  const toggleStar = useCallback(async (cardId, starred) => {
+    setCards(prev => prev.map(c => c.id === cardId ? { ...c, starred } : c))
+    const { error } = await supabase.from('cards').update({ starred }).eq('id', cardId)
+    if (error) {
+      console.error('star toggle failed:', error.message)
+      setCards(prev => prev.map(c => c.id === cardId ? { ...c, starred: !starred } : c))
+    }
+  }, [])
+
   // ── Delete a card ──────────────────────────────────────
   const deleteCard = useCallback(async (cardId) => {
     setCards(prev => prev.filter(c => c.id !== cardId))
@@ -173,5 +183,5 @@ export function useCards(userId) {
     return { added, duplicates: clientDupes + dbDupes, dbErrors, badLines }
   }, [cards, userId])
 
-  return { cards, loading, error, answerCard, saveNote, editCard, deleteCard, importPairs, reload: load }
+  return { cards, loading, error, answerCard, saveNote, toggleStar, editCard, deleteCard, importPairs, reload: load }
 }

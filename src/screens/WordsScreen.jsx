@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { getStatus } from '../lib/srs'
 import EditModal from '../components/EditModal'
 
-export default function WordsScreen({ cards, onEdit, onDelete }) {
+export default function WordsScreen({ cards, onEdit, onDelete, onToggleStar }) {
   const [filter, setFilter]     = useState('all')
   const [sort, setSort]         = useState('alpha')
   const [search, setSearch]     = useState('')
@@ -32,6 +32,10 @@ export default function WordsScreen({ cards, onEdit, onDelete }) {
     if (window.confirm(`Delete "${card.sv} / ${card.en}"? This cannot be undone.`)) {
       onDelete(card.id)
     }
+  }
+
+  const handleToggleStar = (card) => {
+    onToggleStar(card.id, !card.starred)
   }
 
   return (
@@ -81,6 +85,7 @@ export default function WordsScreen({ cards, onEdit, onDelete }) {
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
         <div className="words-table">
           <div className="words-table-header">
+            <span title="Starred">⭐</span>
             <span>Swedish</span>
             <span>English</span>
             <span title="Correct">✓</span>
@@ -98,6 +103,11 @@ export default function WordsScreen({ cards, onEdit, onDelete }) {
               const hasNote = !!(c.note && c.note.trim())
               return (
                 <div key={c.id} className="word-row-full">
+                  <div className="wrf-star">
+                    <button className={`star-toggle-btn${c.starred ? ' starred' : ''}`} onClick={() => handleToggleStar(c)} title={c.starred ? 'Remove from focus list' : 'Add to focus list'}>
+                      {c.starred ? '★' : '☆'}
+                    </button>
+                  </div>
                   <div className="wrf-sv">
                     {c.sv}
                     {hasNote && <span style={{ fontSize: '11px', opacity: 0.5, marginLeft: '4px' }} title={c.note}>📝</span>}
